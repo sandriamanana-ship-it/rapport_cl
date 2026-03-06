@@ -378,7 +378,7 @@ const FORMS_SHEET = "Statut_Campagne";
 const FORMS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(FORMS_SHEET)}`;
 
 let DATA = [];
-let FORMS_DATA = { brief: [], comex: [], production: [], validation: [] };
+let FORMS_DATA = {};
 
 // ============================================================
 // FETCH DATA FROM GOOGLE SHEETS
@@ -526,6 +526,21 @@ function statutBadge(s) {
 // ============================================================
 // FETCH FORMS DATA
 // ============================================================
+function getWeekLabel(date) {
+  const d = new Date(date);
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const weekNum = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - (d.getDay() === 0 ? 6 : d.getDay() - 1));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const months = ['Jan','Fev','Mar','Avr','Mai','Juin','Juil','Aou','Sep','Oct','Nov','Dec'];
+  const fmt = dt => dt.getDate() + ' ' + months[dt.getMonth()];
+  return 'S' + weekNum + ' · ' + fmt(monday) + '-' + fmt(sunday) + ' ' + sunday.getFullYear();
+}
+
 async function fetchForms() {
   try {
     const res = await fetch(FORMS_URL);
@@ -534,24 +549,33 @@ async function fetchForms() {
     const rows = json.table.rows;
     if (!rows || rows.length === 0) return;
 
-    // Prendre la dernière réponse (ligne la plus récente)
-    const lastRow = rows[rows.length - 1];
-    const cols = json.table.cols.map(c => c.label.toLowerCase().trim());
-
     const parse = (val) => {
       if (!val || !val.v) return [];
       return String(val.v).split('\n').map(s => s.trim()).filter(Boolean);
     };
 
-    // Colonnes : horodateur, a faire, comex à venir, en production, en attente de validation
-    FORMS_DATA = {
-      brief:      parse(lastRow.c[1]),
-      comex:      parse(lastRow.c[2]),
-      production: parse(lastRow.c[3]),
-      validation: parse(lastRow.c[4])
-    };
+    // Construire un dictionnaire semaine -> données pipeline
+    FORMS_DATA = {};
+    rows.forEach(row => {
+      if (!row.c[0] || !row.c[0].v) return;
+      // L'horodateur Google Sheets arrive comme Date(2026,2,6,10,49,1)
+      const rawDate = String(row.c[0].v);
+      const match = rawDate.match(/Date\((\d+),(\d+),(\d+)/);
+      let weekLabel = '';
+      if (match) {
+        const dateObj = new Date(parseInt(match[1]), parseInt(match[2]), parseInt(match[3]));
+        weekLabel = getWeekLabel(dateObj);
+      }
+      if (!weekLabel) return;
+      FORMS_DATA[weekLabel] = {
+        brief:      parse(row.c[1]),
+        comex:      parse(row.c[2]),
+        production: parse(row.c[3]),
+        validation: parse(row.c[4])
+      };
+    });
   } catch(e) {
-    console.warn('Forms non chargé:', e);
+    console.warn('Forms non charge:', e);
   }
 }
 
@@ -728,10 +752,11 @@ function showOverview(wi) {
 
   main.appendChild(card);
 
-  // Pipeline section — depuis Google Forms
-  const brief = [...FORMS_DATA.brief, ...FORMS_DATA.comex];
-  const production = FORMS_DATA.production;
-  const validation = FORMS_DATA.validation;
+  // Pipeline section — depuis Google Forms, filtré par semaine
+  const weekForms = FORMS_DATA[week.semaine] || { brief: [], comex: [], production: [], validation: [] };
+  const brief = [...weekForms.brief, ...weekForms.comex];
+  const production = weekForms.production;
+  const validation = weekForms.validation;
 
   const pipeline = document.createElement('div');
   pipeline.className = 'pipeline-section';

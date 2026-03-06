@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le récap des comptes clients</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --teal: #1a7a7a;
+    --teal-light: #e6f4f4;
+    --teal-mid: #2a9d9d;
+    --teal-dark: #145f5f;
+    --bg: #f0f8f8;
+    --text: #1a3a3a;
+    --muted: #5a8a8a;
+    --white: #ffffff;
+    --border: #c8e6e6;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .topnav {
+    background: var(--teal-dark);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topnav-title { font-size: 1rem; font-weight: 800; letter-spacing: 0.05em; }
+  .topnav-right { font-size: 0.75rem; opacity: 0.75; }
+
+  .layout { display: flex; min-height: calc(100vh - 56px); }
+
+  .sidebar {
+    width: 250px;
+    min-width: 250px;
+    background: var(--white);
+    border-right: 2px solid var(--border);
+    padding: 1.25rem 0;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+
+  .sidebar-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 1.25rem;
+    margin-bottom: 0.4rem;
+    margin-top: 1rem;
+  }
+
+  .sidebar-label:first-child { margin-top: 0; }
+
+  .week-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1.25rem;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--teal);
+    background: var(--teal-light);
+    border-left: 3px solid var(--teal-mid);
+    margin: 0.2rem 0;
+    user-select: none;
+  }
+
+  .week-header .arrow { transition: transform 0.2s; font-size: 0.6rem; }
+  .week-header.open .arrow { transform: rotate(90deg); }
+  .week-campaigns { display: none; }
+  .week-campaigns.open { display: block; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: var(--text);
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+
+  .nav-item.indented { padding-left: 2rem; }
+
+  .nav-item:hover { background: var(--teal-light); color: var(--teal); }
+  .nav-item.active {
+    background: var(--teal-light);
+    color: var(--teal-dark);
+    border-left-color: var(--teal-dark);
+    font-weight: 700;
+  }
+
+  main { flex: 1; padding: 2rem; max-width: 900px; }
+
+  /* CAMPAIGN CARD */
+  .campaign-card {
+    background: var(--white);
+    border-radius: 16px;
+    border: 2px solid var(--border);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    animation: fadeIn 0.25s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--teal-light);
+  }
+
+  .card-arrow {
+    width: 36px; height: 36px;
+    background: var(--teal);
+    clip-path: polygon(0 0, 70% 50%, 0 100%, 30% 50%);
+    flex-shrink: 0;
+  }
+
+  .card-title { font-size: 1.35rem; font-weight: 800; color: var(--teal-dark); }
+  .card-week { font-size: 0.72rem; color: var(--muted); font-weight: 600; margin-top: 0.2rem; }
+
+  .dates-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+
+  .date-badge {
+    background: var(--teal);
+    color: white;
+    border-radius: 8px;
+    padding: 0.45rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .date-badge strong { font-weight: 800; }
+
+  .info-block {
+    background: var(--teal-light);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 0.9rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.28rem 0;
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
+  .info-bullet {
+    width: 10px; height: 10px;
+    border: 2px solid var(--teal-mid);
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 0.22rem;
+  }
+
+  .info-row strong { color: var(--teal-dark); font-weight: 700; }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .metric-block { text-align: center; }
+
+  .metric-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+
+  .metric-badge {
+    display: inline-block;
+    background: var(--teal);
+    color: white;
+    border-radius: 10px;
+    padding: 0.5rem 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 800;
+    min-width: 130px;
+  }
+
+  .tops-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .top-block {
+    background: var(--teal-light);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+  }
+
+  .top-title { font-size: 0.88rem; font-weight: 800; color: var(--teal-dark); margin-bottom: 0.5rem; }
+
+  .top-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.25rem 0;
+    font-size: 0.82rem;
+  }
+
+  .top-bullet {
+    width: 10px; height: 10px;
+    border: 2px solid var(--teal-mid);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* OVERVIEW TABLE */
+  .overview-card {
+    background: var(--white);
+    border-radius: 16px;
+    border: 2px solid var(--border);
+    overflow: hidden;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .overview-header {
+    background: var(--teal);
+    color: white;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  .overview-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+
+  .overview-table th {
+    background: var(--teal-light);
+    padding: 0.7rem 1rem;
+    text-align: left;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--teal-dark);
+    font-weight: 700;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .overview-table td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .overview-table tr:last-child td { border-bottom: none; }
+  .overview-table tr:hover td { background: var(--teal-light); cursor: pointer; }
+
+  .td-tag { color: var(--teal); font-weight: 700; font-size: 0.75rem; }
+  .td-cvr { color: var(--teal-dark); font-weight: 700; }
+  .td-cpl { color: var(--teal-mid); font-weight: 700; }
+  .td-client { font-weight: 700; }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    color: var(--muted);
+    font-size: 0.9rem;
+    gap: 1rem;
+  }
+
+  .empty-icon { font-size: 3rem; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+
+  /* PIPELINE SECTION */
+  .pipeline-section {
+    margin-top: 2rem;
+    background: var(--white);
+    border-radius: 16px;
+    border: 2px solid var(--border);
+    overflow: hidden;
+  }
+
+  .pipeline-title {
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--teal-dark);
+    padding: 1.5rem 1rem 1rem;
+    border-bottom: 2px dashed var(--border);
+    letter-spacing: 0.03em;
+  }
+
+  .pipeline-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.25rem;
+    padding: 1.5rem;
+  }
+
+  .pipeline-col { border-radius: 12px; padding: 1rem 1.25rem; }
+  .pipeline-col.brief { background: #ede8f5; border: 1.5px solid #c9baec; }
+  .pipeline-col.production { background: #e8f5f0; border: 1.5px solid #a8dcc8; }
+  .pipeline-col.validation { background: #fdf0ea; border: 1.5px solid #f5c4a0; }
+
+  .pipeline-col-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.75rem; }
+  .pipeline-col.brief .pipeline-col-title { color: #5b3fa0; }
+  .pipeline-col.production .pipeline-col-title { color: #1a7a5a; }
+  .pipeline-col.validation .pipeline-col-title { color: #c05a20; }
+
+  .pipeline-item { text-align: center; font-size: 0.85rem; font-weight: 600; color: var(--text); padding: 0.3rem 0; }
+  .pipeline-empty { text-align: center; font-size: 0.78rem; color: var(--muted); font-style: italic; padding: 0.5rem 0; }
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="topnav-title">📊 Le recap des comptes clients</div>
+  <div class="topnav-right" id="last-update"></div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main id="main">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">📋</div>
+      <div>Sélectionne une campagne dans le menu</div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ============================================================
+// GOOGLE SHEET CONFIG
+// ============================================================
+const SHEET_ID = "1s5pyG3oBgGbrntgqX3zdsNfG57AWS8cRMT2QZkDOMZc";
+const SHEET_NAME = "Sheet1";
+const API_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+const FORMS_SHEET = "Statut_Campagne";
+const FORMS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(FORMS_SHEET)}`;
+
+let DATA = [];
+let FORMS_DATA = { brief: [], comex: [], production: [], validation: [] };
+
+// ============================================================
+// FETCH DATA FROM GOOGLE SHEETS
+// ============================================================
+async function fetchData() {
+  showLoading();
+  try {
+    const res = await fetch(API_URL);
+    const text = await res.text();
+    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);/)[1]);
+    const rows = json.table.rows;
+    const cols = json.table.cols.map(c => c.label.toLowerCase().trim());
+
+    const allRows = rows.map(row => {
+      const obj = {};
+      cols.forEach((col, i) => {
+        obj[col] = row.c[i] ? (row.c[i].v !== null ? String(row.c[i].v) : '') : '';
+      });
+      return obj;
+    }).filter(r => r.client && r.client.trim() !== '');
+
+    const weekMap = {};
+    allRows.forEach(r => {
+      const sem = r.semaine || 'Sans semaine';
+      if (!weekMap[sem]) weekMap[sem] = [];
+      weekMap[sem].push({
+        client: r.client || '',
+        tag: r.tag || '',
+        contenu: r.contenu || '',
+        training_id: r.training_id || '',
+        date_deb: formatDate(r.date_deb),
+        date_fin: formatDate(r.date_fin),
+        jours_restants: (parseInt(r.jours_restants) || 0) + 1,
+        specialites: r.specialites || '',
+        zone_geo: r.zone_geo || '',
+        sessions: parseInt(r.sessions) || 0,
+        inscriptions: parseInt(r.inscriptions) || 0,
+        cvr: parseFloat(r.cvr) || 0,
+        cpl: parseFloat(r.cpl) || 0,
+        top_spe: r.top_spe ? r.top_spe.split(',').map(s => s.trim()) : [],
+        top_country: r.top_country ? r.top_country.split(',').map(s => s.trim()) : [],
+        statut: r.statut ? r.statut.trim() : '',
+        statut: r.statut || '',
+      });
+    });
+
+    DATA = Object.entries(weekMap).map(([semaine, campagnes]) => ({ semaine, campagnes }));
+
+    await fetchForms();
+    hideLoading();
+    buildSidebar();
+    if (DATA.length > 0) showOverview(0);
+
+  } catch (err) {
+    console.error('Erreur chargement Google Sheet:', err);
+    document.getElementById('empty-state').innerHTML = `
+      <div class="empty-icon">⚠️</div>
+      <div>Impossible de charger les données.<br><small>Vérifie que le Google Sheet est bien partagé en lecture publique.</small></div>
+    `;
+    hideLoading();
+  }
+}
+
+function showLoading() {
+  document.getElementById('empty-state').style.display = 'flex';
+  document.getElementById('empty-state').innerHTML = `
+    <div class="empty-icon">⏳</div>
+    <div>Chargement des données...</div>
+  `;
+}
+
+function hideLoading() {
+  document.getElementById('empty-state').style.display = 'none';
+}
+
+// ============================================================
+// DATE HELPER
+// ============================================================
+function formatDate(val) {
+  if (!val) return '';
+  // Gère le format Date(2026,1,25) de Google Sheets
+  const match = val.match(/Date\((\d+),(\d+),(\d+)\)/);
+  if (match) {
+    const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const day = parseInt(match[3]);
+    const month = months[parseInt(match[2])];
+    return `${day} ${month}`;
+  }
+  return val;
+}
+
+// ============================================================
+// STATUT HELPERS
+// ============================================================
+function statutColor(s) {
+  if (!s) return '#aaa';
+  const n = s.toLowerCase();
+  if (n.includes('cours')) return '#1a7a5a';
+  if (n.includes('pause') || n.includes('arr')) return '#c05a20';
+  return '#1a7a7a';
+}
+
+function statutBadge(s) {
+  if (!s) return '';
+  return `<span style="background:${statutColor(s)}22;color:${statutColor(s)};border:1px solid ${statutColor(s)}55;border-radius:6px;padding:0.15rem 0.5rem;font-size:0.7rem;font-weight:700">${s}</span>`;
+}
+
+// ============================================================
+// DATE HELPER
+// ============================================================
+function formatDate(val) {
+  if (!val) return '';
+  // Gère le format Date(2026,1,25) de Google Sheets
+  const match = val.match(/Date\((\d+),(\d+),(\d+)\)/);
+  if (match) {
+    const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    const day = parseInt(match[3]);
+    const month = months[parseInt(match[2])];
+    return `${day} ${month}`;
+  }
+  return val;
+}
+
+// ============================================================
+// STATUT HELPERS
+// ============================================================
+const STATUT_ORDER = ['En cours', 'En cours de validation', 'En cours de production', 'En attente de validation'];
+
+function statutColor(s) {
+  if (!s) return '#aaa';
+  const n = s.toLowerCase();
+  if (n === 'en cours') return '#1a7a5a';
+  if (n.includes('validation')) return '#c05a20';
+  if (n.includes('production')) return '#5b3fa0';
+  if (n.includes('attente')) return '#1a7a7a';
+  return '#5a8a8a';
+}
+
+function statutBadge(s) {
+  if (!s) return '';
+  const c = statutColor(s);
+  return `<span style="background:${c}22;color:${c};border:1px solid ${c}55;border-radius:6px;padding:0.15rem 0.5rem;font-size:0.7rem;font-weight:700;white-space:nowrap">${s}</span>`;
+}
+
+// ============================================================
+// FETCH FORMS DATA
+// ============================================================
+async function fetchForms() {
+  try {
+    const res = await fetch(FORMS_URL);
+    const text = await res.text();
+    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);/)[1]);
+    const rows = json.table.rows;
+    if (!rows || rows.length === 0) return;
+
+    // Prendre la dernière réponse (ligne la plus récente)
+    const lastRow = rows[rows.length - 1];
+    const cols = json.table.cols.map(c => c.label.toLowerCase().trim());
+
+    const parse = (val) => {
+      if (!val || !val.v) return [];
+      return String(val.v).split('\n').map(s => s.trim()).filter(Boolean);
+    };
+
+    // Colonnes : horodateur, a faire, comex à venir, en production, en attente de validation
+    FORMS_DATA = {
+      brief:      parse(lastRow.c[1]),
+      comex:      parse(lastRow.c[2]),
+      production: parse(lastRow.c[3]),
+      validation: parse(lastRow.c[4])
+    };
+  } catch(e) {
+    console.warn('Forms non chargé:', e);
+  }
+}
+
+// ============================================================
+// BUILD SIDEBAR
+// ============================================================
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = '';
+
+  const overviewLabel = document.createElement('div');
+  overviewLabel.className = 'sidebar-label';
+  overviewLabel.textContent = 'Vue globale';
+  sidebar.appendChild(overviewLabel);
+
+  DATA.forEach((week, wi) => {
+    const item = document.createElement('div');
+    item.className = 'nav-item';
+    item.id = `overview-${wi}`;
+    item.textContent = `📅 ${week.semaine.split('·')[0].trim()}`;
+    item.onclick = () => showOverview(wi);
+    sidebar.appendChild(item);
+  });
+
+  DATA.forEach((week, wi) => {
+    const label = document.createElement('div');
+    label.className = 'sidebar-label';
+    label.textContent = week.semaine;
+    sidebar.appendChild(label);
+
+    const header = document.createElement('div');
+    header.className = 'week-header open';
+    header.innerHTML = `<span>Campagnes (${week.campagnes.length})</span><span class="arrow">▶</span>`;
+
+    const list = document.createElement('div');
+    list.className = 'week-campaigns open';
+
+    header.onclick = () => {
+      header.classList.toggle('open');
+      list.classList.toggle('open');
+    };
+
+    week.campagnes.forEach((c, ci) => {
+      const item = document.createElement('div');
+      item.className = 'nav-item indented';
+      item.id = `item-${wi}-${ci}`;
+      const statutDot = c.statut ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statutColor(c.statut)};margin-right:4px;flex-shrink:0"></span>` : '';
+      item.innerHTML = statutDot + `${c.client} — ${c.tag}`;
+      item.onclick = () => showCampaign(wi, ci);
+      list.appendChild(item);
+    });
+
+    sidebar.appendChild(header);
+    sidebar.appendChild(list);
+  });
+}
+
+// ============================================================
+// SHOW CAMPAIGN
+// ============================================================
+function showCampaign(wi, ci) {
+  clearActive();
+  document.getElementById(`item-${wi}-${ci}`).classList.add('active');
+
+
+  const c = DATA[wi].campagnes[ci];
+  const main = document.getElementById('main');
+  document.getElementById('empty-state').style.display = 'none';
+  main.querySelectorAll('.campaign-card, .overview-card, .pipeline-section').forEach(el => el.remove());
+
+  const card = document.createElement('div');
+  card.className = 'campaign-card';
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-arrow"></div>
+      <div>
+        <div class="card-title">${c.client} – ${c.tag}</div>
+        <div class="card-week">${DATA[wi].semaine}</div>
+
+
+      </div>
+    </div>
+
+    <div class="dates-row">
+      <div class="date-badge">Lancement : <strong>${c.date_deb}</strong></div>
+      <div class="date-badge">Jours de promo restants : <strong>${c.jours_restants}</strong></div>
+      <div class="date-badge">Fin de campagne : <strong>${c.date_fin}</strong></div>
+    </div>
+
+    <div class="info-block">
+      <div class="info-row"><div class="info-bullet"></div><div><strong>CIBLES :</strong> ${c.specialites}</div></div>
+      <div class="info-row"><div class="info-bullet"></div><div><strong>ZONE(S) GÉO :</strong> ${c.zone_geo}</div></div>
+      <div class="info-row"><div class="info-bullet"></div><div><strong>TYPE DE CONTENU :</strong> ${c.contenu}</div></div>
+      <div class="info-row"><div class="info-bullet"></div><div><strong>CONTENU(S) MIS EN AVANT :</strong> ${c.training_id}</div></div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-block">
+        <div class="metric-label">🎯 Sessions :</div>
+        <div class="metric-badge">${c.sessions.toLocaleString('fr-FR')}</div>
+      </div>
+      <div class="metric-block">
+        <div class="metric-label">✍️ Inscriptions :</div>
+        <div class="metric-badge">${c.inscriptions.toLocaleString('fr-FR')}</div>
+      </div>
+      <div class="metric-block">
+        <div class="metric-label">📈 Taux de conversion :</div>
+        <div class="metric-badge">${c.cvr.toFixed(2)}%</div>
+      </div>
+      <div class="metric-block">
+        <div class="metric-label">💰 CPL :</div>
+        <div class="metric-badge">${c.cpl.toFixed(2)}€</div>
+      </div>
+    </div>
+
+    <div class="tops-grid">
+      <div class="top-block">
+        <div class="top-title">Top spécialités :</div>
+        ${c.top_spe.map(s => `<div class="top-item"><div class="top-bullet"></div>${s}</div>`).join('')}
+      </div>
+      <div class="top-block">
+        <div class="top-title">Top Pays :</div>
+        ${c.top_country.map(p => `<div class="top-item"><div class="top-bullet"></div>${p}</div>`).join('')}
+      </div>
+    </div>
+  `;
+
+  main.appendChild(card);
+}
+
+// ============================================================
+// SHOW OVERVIEW
+// ============================================================
+function showOverview(wi) {
+  clearActive();
+  document.getElementById(`overview-${wi}`).classList.add('active');
+
+
+  const week = DATA[wi];
+  const main = document.getElementById('main');
+  document.getElementById('empty-state').style.display = 'none';
+  main.querySelectorAll('.campaign-card, .overview-card, .pipeline-section').forEach(el => el.remove());
+
+  const card = document.createElement('div');
+  card.className = 'overview-card';
+
+  card.innerHTML = `
+    <div class="overview-header">📅 ${week.semaine} — Vue globale</div>
+    <table class="overview-table">
+      <thead>
+        <tr>
+          <th>Client</th><th>TAG</th><th>Fin campagne</th>
+          <th>Jours restants</th><th>Sessions</th>
+          <th>Inscriptions</th><th>CVR</th><th>CPL</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${week.campagnes.filter(c => c.statut && c.statut.trim() === 'En cours').sort((a, b) => a.jours_restants - b.jours_restants).map((c) => `
+          <tr onclick="showCampaign(${wi}, ${week.campagnes.indexOf(c)})">
+            <td class="td-client">${c.client}</td>
+            <td class="td-tag">${c.tag}</td>
+            <td>${c.date_fin}</td>
+            <td>${c.jours_restants}j</td>
+            <td>${c.sessions.toLocaleString('fr-FR')}</td>
+            <td>${c.inscriptions.toLocaleString('fr-FR')}</td>
+            <td class="td-cvr">${c.cvr.toFixed(2)}%</td>
+            <td class="td-cpl">${c.cpl.toFixed(2)}€</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+  main.appendChild(card);
+
+  // Pipeline section — depuis Google Forms
+  const brief = [...FORMS_DATA.brief, ...FORMS_DATA.comex];
+  const production = FORMS_DATA.production;
+  const validation = FORMS_DATA.validation;
+
+  const pipeline = document.createElement('div');
+  pipeline.className = 'pipeline-section';
+
+  const renderItems = (list) => {
+    if (list.length === 0) return '<div class="pipeline-empty">Aucune campagne</div>';
+    return list.map(p => `<div class="pipeline-item">${p}</div>`).join('');
+  };
+
+  pipeline.innerHTML = `
+    <div class="pipeline-title">LES CAMPAGNES À VENIR 🥁</div>
+    <div class="pipeline-grid">
+      <div class="pipeline-col brief">
+        <div class="pipeline-col-title">En attente de brief :</div>
+        ${renderItems(brief)}
+      </div>
+      <div class="pipeline-col production">
+        <div class="pipeline-col-title">En cours de production :</div>
+        ${renderItems(production)}
+      </div>
+      <div class="pipeline-col validation">
+        <div class="pipeline-col-title">En attente de validation :</div>
+        ${renderItems(validation)}
+      </div>
+    </div>
+  `;
+
+  main.appendChild(pipeline);
+}
+
+function clearActive() {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+}
+
+function init() {
+  document.getElementById('last-update').textContent =
+    'Mis à jour le ' + new Date().toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  fetchData();
+}
+
+init();
+</script>
+</body>
+</html>

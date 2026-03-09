@@ -639,20 +639,11 @@ function buildSidebar() {
   const sidebar = document.getElementById('sidebar');
   sidebar.innerHTML = '';
 
-  // Vue globale
+  // VUE GLOBALE
   const overviewLabel = document.createElement('div');
   overviewLabel.className = 'sidebar-label';
   overviewLabel.textContent = 'Vue globale';
   sidebar.appendChild(overviewLabel);
-
-  DATA.forEach((week, wi) => {
-    const item = document.createElement('div');
-    item.className = 'nav-item';
-    item.id = `overview-${wi}`;
-    item.textContent = `📅 ${week.semaine.split('·')[0].trim()}`;
-    item.onclick = () => showOverview(wi);
-    sidebar.appendChild(item);
-  });
 
   // Grouper par année
   const yearMap = {};
@@ -663,47 +654,32 @@ function buildSidebar() {
     yearMap[year].push({ week, wi });
   });
 
-  // Trier les années décroissantes
   const sortedYears = Object.keys(yearMap).sort((a, b) => b - a);
 
   sortedYears.forEach(year => {
-    // Header année — cliquable pour replier
-    const yearHeader = document.createElement('div');
-    yearHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1.25rem;background:var(--teal-dark);color:white;font-size:0.75rem;font-weight:800;letter-spacing:0.1em;cursor:pointer;user-select:none;margin-top:0.5rem';
-    yearHeader.innerHTML = `<span>📆 ${year}</span><span class="year-arrow" style="font-size:0.6rem;transition:transform 0.2s">▼</span>`;
-
     const yearContent = document.createElement('div');
-    yearContent.className = 'year-content';
-
-    yearHeader.onclick = () => {
-      const arrow = yearHeader.querySelector('.year-arrow');
-      const isOpen = yearContent.style.display !== 'none';
-      yearContent.style.display = isOpen ? 'none' : 'block';
-      arrow.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
-    };
-
-    sidebar.appendChild(yearHeader);
     sidebar.appendChild(yearContent);
 
-    // Semaines de cette année
+    // Item année cliquable → vue globale de la première semaine de l'année
+    const yearOverview = document.createElement('div');
+    yearOverview.className = 'nav-item';
+    yearOverview.id = `overview-year-${year}`;
+    yearOverview.textContent = `📆 ${year}`;
+    yearOverview.style.cssText = 'font-weight:800;color:var(--teal-dark);font-size:0.82rem;';
+    yearOverview.onclick = () => showOverview(yearMap[year][0].wi);
+    sidebar.appendChild(yearOverview);
+
     yearMap[year].forEach(({ week, wi }) => {
-      const label = document.createElement('div');
-      label.className = 'sidebar-label';
-      label.textContent = week.semaine;
-      yearContent.appendChild(label);
+      // Semaine cliquable → vue globale de la semaine
+      const weekItem = document.createElement('div');
+      weekItem.className = 'nav-item';
+      weekItem.id = `overview-${wi}`;
+      weekItem.style.cssText = 'padding-left:1.25rem;font-weight:700;color:var(--teal);border-left:3px solid transparent;';
+      weekItem.textContent = `📅 ${week.semaine}`;
+      weekItem.onclick = () => showOverview(wi);
+      yearContent.appendChild(weekItem);
 
-      const header = document.createElement('div');
-      header.className = 'week-header open';
-      header.innerHTML = `<span>Campagnes (${week.campagnes.length})</span><span class="arrow">▶</span>`;
-
-      const list = document.createElement('div');
-      list.className = 'week-campaigns open';
-
-      header.onclick = () => {
-        header.classList.toggle('open');
-        list.classList.toggle('open');
-      };
-
+      // Campagnes sous la semaine
       week.campagnes.forEach((c, ci) => {
         const item = document.createElement('div');
         item.className = 'nav-item indented';
@@ -711,11 +687,8 @@ function buildSidebar() {
         const statutDot = c.statut ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statutColor(c.statut)};margin-right:4px;flex-shrink:0"></span>` : '';
         item.innerHTML = statutDot + `${c.client} — ${c.tag}`;
         item.onclick = () => showCampaign(wi, ci);
-        list.appendChild(item);
+        yearContent.appendChild(item);
       });
-
-      yearContent.appendChild(header);
-      yearContent.appendChild(list);
     });
   });
 }

@@ -514,19 +514,27 @@ function hideLoading() {
 // ============================================================
 // DATE RAPPORT HELPER
 // ============================================================
-function formatDateRapport(val) {
-  if (!val) return '';
-  // Format Zapier : "06/03/2026 12:00:00" ou "2026-03-06 12:00:00"
-  let d = new Date(val);
-  if (isNaN(d.getTime())) {
-    // Essayer format DD/MM/YYYY
-    const parts = val.match(/(\d+)\/(\d+)\/(\d+)/);
-    if (parts) d = new Date(parts[3], parts[2]-1, parts[1]);
+function formatDateRapport(semaine, val) {
+  // Extraire le numéro de semaine ex: "S10 · 2 Mar-8 Mar 2026" -> "S10"
+  const sNum = semaine ? semaine.split('·')[0].trim() : '';
+  // Parser la date Google Sheets Date(2026,2,6)
+  let dateStr = '';
+  if (val) {
+    const gsMatch = val.match(/Date\((\d+),(\d+),(\d+)/);
+    if (gsMatch) {
+      const d = new Date(parseInt(gsMatch[1]), parseInt(gsMatch[2]), parseInt(gsMatch[3]));
+      const dd = String(d.getDate()).padStart(2,'0');
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const yy = String(d.getFullYear()).slice(2);
+      dateStr = dd + '/' + mm + '/' + yy;
+    } else {
+      // Format déjà DD/MM/YYYY ou DD/MM/YY
+      const parts = val.match(/(\d+)\/(\d+)\/(\d+)/);
+      if (parts) dateStr = parts[1] + '/' + parts[2] + '/' + String(parts[3]).slice(-2);
+    }
   }
-  if (isNaN(d.getTime())) return val;
-  const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
-  const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  if (sNum && dateStr) return sNum + ' - ' + dateStr;
+  return sNum || dateStr || semaine;
 }
 
 // ============================================================
@@ -564,19 +572,27 @@ function statutBadge(s) {
 // ============================================================
 // DATE RAPPORT HELPER
 // ============================================================
-function formatDateRapport(val) {
-  if (!val) return '';
-  // Format Zapier : "06/03/2026 12:00:00" ou "2026-03-06 12:00:00"
-  let d = new Date(val);
-  if (isNaN(d.getTime())) {
-    // Essayer format DD/MM/YYYY
-    const parts = val.match(/(\d+)\/(\d+)\/(\d+)/);
-    if (parts) d = new Date(parts[3], parts[2]-1, parts[1]);
+function formatDateRapport(semaine, val) {
+  // Extraire le numéro de semaine ex: "S10 · 2 Mar-8 Mar 2026" -> "S10"
+  const sNum = semaine ? semaine.split('·')[0].trim() : '';
+  // Parser la date Google Sheets Date(2026,2,6)
+  let dateStr = '';
+  if (val) {
+    const gsMatch = val.match(/Date\((\d+),(\d+),(\d+)/);
+    if (gsMatch) {
+      const d = new Date(parseInt(gsMatch[1]), parseInt(gsMatch[2]), parseInt(gsMatch[3]));
+      const dd = String(d.getDate()).padStart(2,'0');
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const yy = String(d.getFullYear()).slice(2);
+      dateStr = dd + '/' + mm + '/' + yy;
+    } else {
+      // Format déjà DD/MM/YYYY ou DD/MM/YY
+      const parts = val.match(/(\d+)\/(\d+)\/(\d+)/);
+      if (parts) dateStr = parts[1] + '/' + parts[2] + '/' + String(parts[3]).slice(-2);
+    }
   }
-  if (isNaN(d.getTime())) return val;
-  const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
-  const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  if (sNum && dateStr) return sNum + ' - ' + dateStr;
+  return sNum || dateStr || semaine;
 }
 
 // ============================================================
@@ -748,7 +764,7 @@ function buildSidebar() {
         const weekHeader = document.createElement('div');
         weekHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0.45rem 1.25rem 0.45rem 1.75rem;cursor:pointer;font-size:0.75rem;font-weight:700;color:var(--teal);border-left:3px solid transparent;transition:all 0.15s';
         weekHeader.id = `overview-${wi}`;
-        const weekLabel = formatDateRapport(week.date_rapport) || week.semaine;
+        const weekLabel = formatDateRapport(week.semaine, week.date_rapport);
         weekHeader.innerHTML = `<span>📅 ${weekLabel}</span><span style="font-size:0.6rem;transition:transform 0.2s">▶</span>`;
 
         const weekContent = document.createElement('div');
@@ -801,7 +817,7 @@ function showCampaign(wi, ci) {
       <div class="card-arrow"></div>
       <div>
         <div class="card-title">${c.client} – ${c.tag}</div>
-        <div class="card-week">${formatDateRapport(DATA[wi].date_rapport) || DATA[wi].semaine}</div>
+        <div class="card-week">${formatDateRapport(DATA[wi].semaine, DATA[wi].date_rapport)}</div>
 
 
       </div>
@@ -871,7 +887,7 @@ function showOverview(wi) {
   card.className = 'overview-card';
 
   card.innerHTML = `
-    <div class="overview-header">📅 ${formatDateRapport(week.date_rapport) || week.semaine} — Vue globale</div>
+    <div class="overview-header">📅 ${formatDateRapport(week.semaine, week.date_rapport)} — Vue globale</div>
     <table class="overview-table">
       <thead>
         <tr>

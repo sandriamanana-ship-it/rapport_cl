@@ -639,6 +639,7 @@ function buildSidebar() {
   const sidebar = document.getElementById('sidebar');
   sidebar.innerHTML = '';
 
+  // Vue globale
   const overviewLabel = document.createElement('div');
   overviewLabel.className = 'sidebar-label';
   overviewLabel.textContent = 'Vue globale';
@@ -653,36 +654,69 @@ function buildSidebar() {
     sidebar.appendChild(item);
   });
 
+  // Grouper par année
+  const yearMap = {};
   DATA.forEach((week, wi) => {
-    const label = document.createElement('div');
-    label.className = 'sidebar-label';
-    label.textContent = week.semaine;
-    sidebar.appendChild(label);
+    const yearMatch = week.semaine.match(/\b(20\d{2})\b/);
+    const year = yearMatch ? yearMatch[1] : 'Autres';
+    if (!yearMap[year]) yearMap[year] = [];
+    yearMap[year].push({ week, wi });
+  });
 
-    const header = document.createElement('div');
-    header.className = 'week-header open';
-    header.innerHTML = `<span>Campagnes (${week.campagnes.length})</span><span class="arrow">▶</span>`;
+  // Trier les années décroissantes
+  const sortedYears = Object.keys(yearMap).sort((a, b) => b - a);
 
-    const list = document.createElement('div');
-    list.className = 'week-campaigns open';
+  sortedYears.forEach(year => {
+    // Header année — cliquable pour replier
+    const yearHeader = document.createElement('div');
+    yearHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1.25rem;background:var(--teal-dark);color:white;font-size:0.75rem;font-weight:800;letter-spacing:0.1em;cursor:pointer;user-select:none;margin-top:0.5rem';
+    yearHeader.innerHTML = `<span>📆 ${year}</span><span class="year-arrow" style="font-size:0.6rem;transition:transform 0.2s">▼</span>`;
 
-    header.onclick = () => {
-      header.classList.toggle('open');
-      list.classList.toggle('open');
+    const yearContent = document.createElement('div');
+    yearContent.className = 'year-content';
+
+    yearHeader.onclick = () => {
+      const arrow = yearHeader.querySelector('.year-arrow');
+      const isOpen = yearContent.style.display !== 'none';
+      yearContent.style.display = isOpen ? 'none' : 'block';
+      arrow.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
     };
 
-    week.campagnes.forEach((c, ci) => {
-      const item = document.createElement('div');
-      item.className = 'nav-item indented';
-      item.id = `item-${wi}-${ci}`;
-      const statutDot = c.statut ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statutColor(c.statut)};margin-right:4px;flex-shrink:0"></span>` : '';
-      item.innerHTML = statutDot + `${c.client} — ${c.tag}`;
-      item.onclick = () => showCampaign(wi, ci);
-      list.appendChild(item);
-    });
+    sidebar.appendChild(yearHeader);
+    sidebar.appendChild(yearContent);
 
-    sidebar.appendChild(header);
-    sidebar.appendChild(list);
+    // Semaines de cette année
+    yearMap[year].forEach(({ week, wi }) => {
+      const label = document.createElement('div');
+      label.className = 'sidebar-label';
+      label.textContent = week.semaine;
+      yearContent.appendChild(label);
+
+      const header = document.createElement('div');
+      header.className = 'week-header open';
+      header.innerHTML = `<span>Campagnes (${week.campagnes.length})</span><span class="arrow">▶</span>`;
+
+      const list = document.createElement('div');
+      list.className = 'week-campaigns open';
+
+      header.onclick = () => {
+        header.classList.toggle('open');
+        list.classList.toggle('open');
+      };
+
+      week.campagnes.forEach((c, ci) => {
+        const item = document.createElement('div');
+        item.className = 'nav-item indented';
+        item.id = `item-${wi}-${ci}`;
+        const statutDot = c.statut ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statutColor(c.statut)};margin-right:4px;flex-shrink:0"></span>` : '';
+        item.innerHTML = statutDot + `${c.client} — ${c.tag}`;
+        item.onclick = () => showCampaign(wi, ci);
+        list.appendChild(item);
+      });
+
+      yearContent.appendChild(header);
+      yearContent.appendChild(list);
+    });
   });
 }
 

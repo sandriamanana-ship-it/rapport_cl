@@ -765,7 +765,9 @@ function buildSidebar() {
         weekHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0.45rem 1.25rem 0.45rem 1.75rem;cursor:pointer;font-size:0.75rem;font-weight:700;color:var(--teal);border-left:3px solid transparent;transition:all 0.15s';
         weekHeader.id = `overview-${wi}`;
         const weekLabel = formatDateRapport(week.semaine, week.date_rapport);
-        weekHeader.innerHTML = `<span>📅 ${weekLabel}</span><span style="font-size:0.6rem;transition:transform 0.2s">▶</span>`;
+        const enCours = week.campagnes.filter(c => c.statut && c.statut.trim() === 'En cours').length;
+        const countBadge = enCours > 0 ? `<span style="background:var(--teal);color:white;font-size:0.65rem;font-weight:800;padding:1px 6px;border-radius:99px;margin-left:4px">${enCours}</span>` : '';
+        weekHeader.innerHTML = `<span>📅 ${weekLabel}${countBadge}</span><span style="font-size:0.6rem;transition:transform 0.2s">▶</span>`;
 
         const weekContent = document.createElement('div');
         weekContent.style.display = 'none';

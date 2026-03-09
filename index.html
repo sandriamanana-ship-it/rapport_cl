@@ -639,55 +639,102 @@ function buildSidebar() {
   const sidebar = document.getElementById('sidebar');
   sidebar.innerHTML = '';
 
+  // Grouper par année > mois > semaine
+  const yearMap = {};
+  const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+  DATA.forEach((week, wi) => {
+    const yearMatch = week.semaine.match(/\b(20\d{2})\b/);
+    const year = yearMatch ? yearMatch[1] : 'Autres';
+
+    // Extraire le mois depuis la date de début de semaine ex: "S10 · 2 Mar-8 Mar 2026"
+    const monthMatch = week.semaine.match(/\d+ (\w+)-/);
+    const monthAbbr = monthMatch ? monthMatch[1] : '';
+    const monthIndex = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'].indexOf(monthAbbr);
+    const monthLabel = monthIndex >= 0 ? monthNames[monthIndex] : monthAbbr;
+
+    if (!yearMap[year]) yearMap[year] = {};
+    if (!yearMap[year][monthLabel]) yearMap[year][monthLabel] = [];
+    yearMap[year][monthLabel].push({ week, wi });
+  });
+
+  const sortedYears = Object.keys(yearMap).sort((a, b) => b - a);
+
   // VUE GLOBALE
   const overviewLabel = document.createElement('div');
   overviewLabel.className = 'sidebar-label';
   overviewLabel.textContent = 'Vue globale';
   sidebar.appendChild(overviewLabel);
 
-  // Grouper par année
-  const yearMap = {};
-  DATA.forEach((week, wi) => {
-    const yearMatch = week.semaine.match(/\b(20\d{2})\b/);
-    const year = yearMatch ? yearMatch[1] : 'Autres';
-    if (!yearMap[year]) yearMap[year] = [];
-    yearMap[year].push({ week, wi });
-  });
-
-  const sortedYears = Object.keys(yearMap).sort((a, b) => b - a);
-
+  // Accordion : Année > Mois > Semaine > Campagnes
   sortedYears.forEach(year => {
+    // ANNÉE
+    const yearHeader = document.createElement('div');
+    yearHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0.55rem 1.25rem;background:var(--teal-dark);color:white;font-size:0.78rem;font-weight:800;letter-spacing:0.08em;cursor:pointer;user-select:none;margin-top:0.4rem';
+    yearHeader.innerHTML = `<span>${year}</span><span style="font-size:0.6rem;transition:transform 0.2s">▼</span>`;
     const yearContent = document.createElement('div');
+
+    yearHeader.onclick = () => {
+      const arrow = yearHeader.querySelector('span:last-child');
+      const isOpen = yearContent.style.display !== 'none';
+      yearContent.style.display = isOpen ? 'none' : 'block';
+      arrow.style.transform = isOpen ? 'rotate(-90deg)' : '';
+    };
+
+    sidebar.appendChild(yearHeader);
     sidebar.appendChild(yearContent);
 
-    // Item année cliquable → vue globale de la première semaine de l'année
-    const yearOverview = document.createElement('div');
-    yearOverview.className = 'nav-item';
-    yearOverview.id = `overview-year-${year}`;
-    yearOverview.textContent = `📆 ${year}`;
-    yearOverview.style.cssText = 'font-weight:800;color:var(--teal-dark);font-size:0.82rem;';
-    yearOverview.onclick = () => showOverview(yearMap[year][0].wi);
-    sidebar.appendChild(yearOverview);
+    const months = Object.keys(yearMap[year]);
 
-    yearMap[year].forEach(({ week, wi }) => {
-      // Semaine cliquable → vue globale de la semaine
-      const weekItem = document.createElement('div');
-      weekItem.className = 'nav-item';
-      weekItem.id = `overview-${wi}`;
-      weekItem.style.cssText = 'padding-left:1.25rem;font-weight:700;color:var(--teal);border-left:3px solid transparent;';
-      weekItem.textContent = `📅 ${week.semaine}`;
-      weekItem.onclick = () => showOverview(wi);
-      yearContent.appendChild(weekItem);
+    months.forEach(month => {
+      // MOIS
+      const monthHeader = document.createElement('div');
+      monthHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0.45rem 1.25rem 0.45rem 1.5rem;background:var(--teal-light);color:var(--teal-dark);font-size:0.72rem;font-weight:800;letter-spacing:0.08em;cursor:pointer;user-select:none;border-left:3px solid var(--teal-mid)';
+      monthHeader.innerHTML = `<span>${month}</span><span style="font-size:0.6rem;transition:transform 0.2s">▼</span>`;
+      const monthContent = document.createElement('div');
 
-      // Campagnes sous la semaine
-      week.campagnes.forEach((c, ci) => {
-        const item = document.createElement('div');
-        item.className = 'nav-item indented';
-        item.id = `item-${wi}-${ci}`;
-        const statutDot = c.statut ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statutColor(c.statut)};margin-right:4px;flex-shrink:0"></span>` : '';
-        item.innerHTML = statutDot + `${c.client} — ${c.tag}`;
-        item.onclick = () => showCampaign(wi, ci);
-        yearContent.appendChild(item);
+      monthHeader.onclick = () => {
+        const arrow = monthHeader.querySelector('span:last-child');
+        const isOpen = monthContent.style.display !== 'none';
+        monthContent.style.display = isOpen ? 'none' : 'block';
+        arrow.style.transform = isOpen ? 'rotate(-90deg)' : '';
+      };
+
+      yearContent.appendChild(monthHeader);
+      yearContent.appendChild(monthContent);
+
+      yearMap[year][month].forEach(({ week, wi }) => {
+        // SEMAINE cliquable → vue globale + accordion campagnes
+        const weekHeader = document.createElement('div');
+        weekHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0.45rem 1.25rem 0.45rem 1.75rem;cursor:pointer;font-size:0.75rem;font-weight:700;color:var(--teal);border-left:3px solid transparent;transition:all 0.15s';
+        weekHeader.id = `overview-${wi}`;
+        const weekLabel = week.semaine.split('·')[0].trim() + ' · ' + (week.semaine.split('·')[1] || '').trim();
+        weekHeader.innerHTML = `<span>📅 ${weekLabel}</span><span style="font-size:0.6rem;transition:transform 0.2s">▶</span>`;
+
+        const weekContent = document.createElement('div');
+        weekContent.style.display = 'none';
+
+        weekHeader.onclick = () => {
+          const arrow = weekHeader.querySelector('span:last-child');
+          const isOpen = weekContent.style.display !== 'none';
+          weekContent.style.display = isOpen ? 'none' : 'block';
+          arrow.style.transform = isOpen ? '' : 'rotate(90deg)';
+          showOverview(wi);
+        };
+
+        monthContent.appendChild(weekHeader);
+        monthContent.appendChild(weekContent);
+
+        // Campagnes sous la semaine
+        week.campagnes.forEach((c, ci) => {
+          const item = document.createElement('div');
+          item.className = 'nav-item indented';
+          item.id = `item-${wi}-${ci}`;
+          const statutDot = c.statut ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statutColor(c.statut)};margin-right:4px;flex-shrink:0"></span>` : '';
+          item.innerHTML = statutDot + `${c.client} — ${c.tag}`;
+          item.onclick = () => showCampaign(wi, ci);
+          weekContent.appendChild(item);
+        });
       });
     });
   });

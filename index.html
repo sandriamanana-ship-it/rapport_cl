@@ -474,11 +474,15 @@ async function fetchData() {
         top_spe: r.top_spe ? r.top_spe.split(',').map(s => s.trim()) : [],
         top_country: r.top_country ? r.top_country.split(',').map(s => s.trim()) : [],
         statut: r.statut ? r.statut.trim() : '',
-        statut: r.statut || '',
+        date_rapport: r.date_rapport || '',
       });
     });
 
-    DATA = Object.entries(weekMap).map(([semaine, campagnes]) => ({ semaine, campagnes }));
+    DATA = Object.entries(weekMap).map(([semaine, campagnes]) => ({
+      semaine,
+      campagnes,
+      date_rapport: campagnes[0] ? campagnes[0].date_rapport : ''
+    }));
 
     await fetchForms();
     hideLoading();
@@ -505,6 +509,24 @@ function showLoading() {
 
 function hideLoading() {
   document.getElementById('empty-state').style.display = 'none';
+}
+
+// ============================================================
+// DATE RAPPORT HELPER
+// ============================================================
+function formatDateRapport(val) {
+  if (!val) return '';
+  // Format Zapier : "06/03/2026 12:00:00" ou "2026-03-06 12:00:00"
+  let d = new Date(val);
+  if (isNaN(d.getTime())) {
+    // Essayer format DD/MM/YYYY
+    const parts = val.match(/(\d+)\/(\d+)\/(\d+)/);
+    if (parts) d = new Date(parts[3], parts[2]-1, parts[1]);
+  }
+  if (isNaN(d.getTime())) return val;
+  const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
 }
 
 // ============================================================
@@ -537,6 +559,24 @@ function statutColor(s) {
 function statutBadge(s) {
   if (!s) return '';
   return `<span style="background:${statutColor(s)}22;color:${statutColor(s)};border:1px solid ${statutColor(s)}55;border-radius:6px;padding:0.15rem 0.5rem;font-size:0.7rem;font-weight:700">${s}</span>`;
+}
+
+// ============================================================
+// DATE RAPPORT HELPER
+// ============================================================
+function formatDateRapport(val) {
+  if (!val) return '';
+  // Format Zapier : "06/03/2026 12:00:00" ou "2026-03-06 12:00:00"
+  let d = new Date(val);
+  if (isNaN(d.getTime())) {
+    // Essayer format DD/MM/YYYY
+    const parts = val.match(/(\d+)\/(\d+)\/(\d+)/);
+    if (parts) d = new Date(parts[3], parts[2]-1, parts[1]);
+  }
+  if (isNaN(d.getTime())) return val;
+  const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
 }
 
 // ============================================================
@@ -708,7 +748,7 @@ function buildSidebar() {
         const weekHeader = document.createElement('div');
         weekHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0.45rem 1.25rem 0.45rem 1.75rem;cursor:pointer;font-size:0.75rem;font-weight:700;color:var(--teal);border-left:3px solid transparent;transition:all 0.15s';
         weekHeader.id = `overview-${wi}`;
-        const weekLabel = week.semaine.split('·')[0].trim() + ' · ' + (week.semaine.split('·')[1] || '').trim();
+        const weekLabel = formatDateRapport(week.date_rapport) || week.semaine;
         weekHeader.innerHTML = `<span>📅 ${weekLabel}</span><span style="font-size:0.6rem;transition:transform 0.2s">▶</span>`;
 
         const weekContent = document.createElement('div');
@@ -761,7 +801,7 @@ function showCampaign(wi, ci) {
       <div class="card-arrow"></div>
       <div>
         <div class="card-title">${c.client} – ${c.tag}</div>
-        <div class="card-week">${DATA[wi].semaine}</div>
+        <div class="card-week">${formatDateRapport(DATA[wi].date_rapport) || DATA[wi].semaine}</div>
 
 
       </div>
@@ -831,7 +871,7 @@ function showOverview(wi) {
   card.className = 'overview-card';
 
   card.innerHTML = `
-    <div class="overview-header">📅 ${week.semaine} — Vue globale</div>
+    <div class="overview-header">📅 ${formatDateRapport(week.date_rapport) || week.semaine} — Vue globale</div>
     <table class="overview-table">
       <thead>
         <tr>

@@ -482,7 +482,18 @@ async function fetchData() {
       semaine,
       campagnes,
       date_rapport: campagnes[0] ? campagnes[0].date_rapport : ''
-    }));
+    })).sort((a, b) => {
+      // Trier par date_rapport décroissante (la plus récente en premier)
+      const getDate = (w) => {
+        const gsMatch = w.date_rapport && w.date_rapport.match(/Date\((\d+),(\d+),(\d+)/);
+        if (gsMatch) return new Date(parseInt(gsMatch[1]), parseInt(gsMatch[2]), parseInt(gsMatch[3]));
+        // Fallback : extraire l'année et le numéro de semaine
+        const sMatch = w.semaine.match(/S(\d+).*?(\d{4})/);
+        if (sMatch) return new Date(parseInt(sMatch[2]), 0, parseInt(sMatch[1]) * 7);
+        return new Date(0);
+      };
+      return getDate(b) - getDate(a);
+    });
 
     await fetchForms();
     hideLoading();
